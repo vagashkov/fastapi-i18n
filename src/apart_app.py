@@ -10,9 +10,27 @@ from pathlib import Path
 
 # define project components location
 BASE_DIR = Path(__file__).resolve().parent.parent
+DEFAULT_LANGUAGE = "en"
+SUPPORTED_LANGUAGES = ["de", "en", "ru"]
+_user_language = ''
+
+
+# define some middware
+def add_middlewares(app):
+    @app.middleware("http")
+    async def get_accept_language(request: Request, call_next):
+        requested_lang = request.headers.get("accept-language", None)[:2]
+        global _user_language
+        _user_language = DEFAULT_LANGUAGE if requested_lang not in SUPPORTED_LANGUAGES else requested_lang
+        response = await call_next(request)
+        return response
+
 
 # create an application
 app = FastAPI()
+# define moddleware layers
+add_middlewares(app)
+
 # defile templates location
 templates = Jinja2Templates(directory=str(BASE_DIR.joinpath('templates')))
 
@@ -63,13 +81,14 @@ def plural_formatting(key_value, input_text, locale):
 templates.env.filters['plural_formatting'] = plural_formatting
 
 
-@app.get("/apartment/{locale}", response_class=HTMLResponse)
-async def rental(request: Request, locale: str):
+@app.get("/apartment/", response_class=HTMLResponse)
+async def rental(request: Request):
     # if language is unknown - use en
+    locale = _user_language
     if locale not in languages:
         locale = default_fallback
 
-    # bild response data
+    # bild r    esponse data
     result = {"request": request}
     # update it with translations
     result.update(languages[locale])
