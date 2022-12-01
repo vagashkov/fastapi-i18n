@@ -12,14 +12,14 @@ from pathlib import Path
 BASE_DIR = Path(__file__).resolve().parent.parent
 DEFAULT_LANGUAGE = "en"
 SUPPORTED_LANGUAGES = ["de", "en", "ru"]
-_user_language = ''
+_user_language = DEFAULT_LANGUAGE
 
 
 # define some middware
 def add_middlewares(app):
     @app.middleware("http")
     async def get_accept_language(request: Request, call_next):
-        requested_lang = request.headers.get("accept-language", None)[:2]
+        requested_lang = request.headers.get("accept-language", None).split('-')[0]
         global _user_language
         _user_language = DEFAULT_LANGUAGE if requested_lang not in SUPPORTED_LANGUAGES else requested_lang
         response = await call_next(request)
@@ -88,7 +88,7 @@ async def rental(request: Request):
     if locale not in languages:
         locale = default_fallback
 
-    # bild r    esponse data
+    # bild response data
     result = {"request": request}
     # update it with translations
     result.update(languages[locale])
